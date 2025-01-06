@@ -99,6 +99,7 @@ function endSelection(e) {
     const endY = e.clientY;
     const scrollX = window.scrollX || window.pageXOffset;
     const scrollY = window.scrollY || window.pageYOffset;
+    console.log('scrollX:', scrollX, 'scrollY:', scrollY); // スクロール量をログに出力
 
     // より正確な座標計算
     const width = Math.abs(endX - startX);
@@ -106,6 +107,7 @@ function endSelection(e) {
     
     const left = Math.min(startX, endX);
     const top = Math.min(startY, endY);
+    console.log('left:', left, 'top:', top, 'width:', width, 'height:', height); // 座標とサイズをログに出力
 
     if (width > 0 && height > 0) {
         // 座標計算を単純化
@@ -139,8 +141,8 @@ function cleanup() {
 }
 
 function initializeSelection() {
-    toggleTextSelection(true);
-    createOverlay();
+    toggleTextSelection(true); // テキストが選択されないように無効化する
+    createOverlay(); // クリックが要素に伝わらないようにオーバレイを作成する
     
     // オーバレイにイベントリスナーを追加
     overlayElement.addEventListener('mousedown', startSelection, true);
@@ -158,4 +160,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+// ページ遷移やクローズ時に選択中の状態を解除する
 window.addEventListener('beforeunload', cleanup);
