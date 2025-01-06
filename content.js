@@ -47,8 +47,8 @@ function createSelectionBox() {
     selectionBox = document.createElement('div');
     selectionBox.style.cssText = `
         position: fixed;
-        border: 2px solid #1a73e8;
-        background-color: rgba(26, 115, 232, 0.1);
+        border: 2px solid #FFA500;
+        background-color: rgba(255, 165, 0, 0.1);
         pointer-events: none;
         z-index: 2147483647;
         display: none;
