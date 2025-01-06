@@ -1,3 +1,24 @@
+async function copyImageToClipboard(base64Data, tabId) {
+    try {
+        await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            func: async (base64Data) => {
+                const response = await fetch(`data:image/png;base64,${base64Data}`);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'image/png': blob
+                    })
+                ]);
+            },
+            args: [base64Data]
+        });
+        console.log('画像をクリップボードにコピーしました');
+    } catch (error) {
+        console.error('クリップボードへのコピーに失敗:', error);
+    }
+}
+
 async function captureScreenshot(clip) {
     let attachedTab = null;
     try {
@@ -35,6 +56,9 @@ async function captureScreenshot(clip) {
 
         // スクリーンショット取得後にデバッガーを切断
         await chrome.debugger.detach({ tabId: tab.id });
+
+        // クリップボードにコピー
+        await copyImageToClipboard(data, tab.id);
 
         // ダウンロード処理
         await chrome.downloads.download({

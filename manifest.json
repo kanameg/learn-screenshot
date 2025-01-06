@@ -14,7 +14,8 @@
         "activeTab",
         "downloads",
         "scripting",
-        "commands"
+        "commands",
+        "clipboardWrite"
     ],
     "commands": {
         "take-screenshot": {
