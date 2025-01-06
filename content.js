@@ -47,8 +47,8 @@ function createSelectionBox() {
     selectionBox = document.createElement('div');
     selectionBox.style.cssText = `
         position: fixed;
-        border: 2px solid #1a73e8;
-        background-color: rgba(26, 115, 232, 0.1);
+        border: 2px solid #FFA500;
+        background-color: rgba(255, 165, 0, 0.1);
         pointer-events: none;
         z-index: 2147483647;
         display: none;
@@ -99,6 +99,7 @@ function endSelection(e) {
     const endY = e.clientY;
     const scrollX = window.scrollX || window.pageXOffset;
     const scrollY = window.scrollY || window.pageYOffset;
+    console.log('scrollX:', scrollX, 'scrollY:', scrollY); // スクロール量をログに出力
 
     // より正確な座標計算
     const width = Math.abs(endX - startX);
@@ -106,6 +107,7 @@ function endSelection(e) {
     
     const left = Math.min(startX, endX);
     const top = Math.min(startY, endY);
+    console.log('left:', left, 'top:', top, 'width:', width, 'height:', height); // 座標とサイズをログに出力
 
     if (width > 0 && height > 0) {
         // 座標計算を単純化
@@ -135,17 +137,17 @@ function cleanup() {
 
     toggleTextSelection(false);
 
-    document.removeEventListener('mousemove', updateSelectionBox, true);
-    document.removeEventListener('mouseup', endSelection, true);
+    // overlayElementは削除済みなので、イベントリスナーも削除されている
 }
 
 function initializeSelection() {
-    toggleTextSelection(true);
-    createOverlay();
+    toggleTextSelection(true); // テキストが選択されないように無効化する
+    createOverlay(); // クリックが要素に伝わらないようにオーバレイを作成する
     
+    // オーバレイにイベントリスナーを追加
     overlayElement.addEventListener('mousedown', startSelection, true);
-    document.addEventListener('mousemove', updateSelectionBox, true);
-    document.addEventListener('mouseup', endSelection, true);
+    overlayElement.addEventListener('mousemove', updateSelectionBox, true);
+    overlayElement.addEventListener('mouseup', endSelection, true);
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -158,4 +160,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
+// ページ遷移やクローズ時に選択中の状態を解除する
 window.addEventListener('beforeunload', cleanup);
