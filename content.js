@@ -135,17 +135,17 @@ function cleanup() {
 
     toggleTextSelection(false);
 
-    document.removeEventListener('mousemove', updateSelectionBox, true);
-    document.removeEventListener('mouseup', endSelection, true);
+    // overlayElementは削除済みなので、イベントリスナーも削除されている
 }
 
 function initializeSelection() {
     toggleTextSelection(true);
     createOverlay();
     
+    // オーバレイにイベントリスナーを追加
     overlayElement.addEventListener('mousedown', startSelection, true);
-    document.addEventListener('mousemove', updateSelectionBox, true);
-    document.addEventListener('mouseup', endSelection, true);
+    overlayElement.addEventListener('mousemove', updateSelectionBox, true);
+    overlayElement.addEventListener('mouseup', endSelection, true);
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
