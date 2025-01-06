@@ -18,12 +18,19 @@
         "clipboardWrite"
     ],
     "commands": {
-        "take-screenshot": {
+        "screenshot-to-file": {
             "suggested_key": {
                 "default": "Ctrl+Shift+S",
                 "mac": "Command+Shift+S"
             },
-            "description": "Take a screenshot"
+            "description": "Take a screenshot to file"
+        },
+        "screenshot-to-clipboard": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+X",
+                "mac": "Command+Shift+X"
+            },
+            "description": "Take a screenshot to clipboard"
         }
     },
     "host_permissions": [

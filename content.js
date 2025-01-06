@@ -3,6 +3,7 @@ let startX = 0;
 let startY = 0;
 let selectionBox = null;
 let overlayElement = null;
+let toMode = 'file';
 
 function toggleTextSelection(disable) {
     const style = document.createElement('style');
@@ -113,6 +114,7 @@ function endSelection(e) {
         // 座標計算を単純化
         chrome.runtime.sendMessage({
             type: 'selectionComplete',
+            mode: toMode,
             clip: {
                 x: Math.round(left + scrollX),
                 y: Math.round(top + scrollY),
@@ -156,6 +158,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
     }
     if (message.type === 'startSelection') {
+        toMode = message.mode; // モードを取得 (デフォルトはファイルモード)
         initializeSelection();
     }
 });
