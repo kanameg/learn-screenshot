@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+    <!-- 背景の円 -->
+    <circle cx="64" cy="64" r="64" fill="#2196F3"/>
+    
+    <!-- カメラのレンズを模した円 -->
+    <circle cx="64" cy="64" r="48" fill="#1565C0"/>
+    <circle cx="64" cy="64" r="40" fill="#0D47A1"/>
+    
+    <!-- 教育を表すモチーフ（本） -->
+    <path d="M44 50 L84 50 L84 78 L64 85 L44 78 Z" fill="#BBDEFB"/>
+    <path d="M64 50 L64 85 L84 78 L84 50 Z" fill="#90CAF9"/>
+    
+    <!-- カメラのシャッターを模した要素 -->
+    <circle cx="64" cy="64" r="24" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+    <circle cx="64" cy="64" r="16" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    
+    <!-- 光の反射効果 -->
+    <circle cx="48" cy="48" r="6" fill="#FFFFFF" opacity="0.6"/>
+</svg>
