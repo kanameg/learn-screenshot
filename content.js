@@ -56,6 +56,21 @@ function createSelectionBox() {
         box-sizing: border-box;
     `;
     document.body.appendChild(selectionBox);
+
+    const sizeDisplay = document.createElement('div');
+    sizeDisplay.id = 'size-display';
+    sizeDisplay.style.cssText = `
+        position: absolute;
+        bottom: -25px;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: Arial;
+    `;
+    selectionBox.appendChild(sizeDisplay);
 }
 
 function updateSelectionBox(e) {
@@ -77,6 +92,12 @@ function updateSelectionBox(e) {
     selectionBox.style.width = width + 'px';
     selectionBox.style.height = height + 'px';
     selectionBox.style.display = 'block';
+
+    // サイズ表示を更新
+    const sizeDisplay = selectionBox.querySelector('#size-display');
+    if (sizeDisplay) {
+        sizeDisplay.textContent = `${Math.round(width)} x ${Math.round(height)}`;
+    }
 }
 
 function startSelection(e) {

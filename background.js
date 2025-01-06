@@ -44,7 +44,7 @@ async function captureScreenshot(clip, toMode = 'file') {
             quality: 100,
             clip: {
                 ...clip,
-                scale: 1
+                scale: 0.5 // 0.5で実ピクセルサイズになる
             }
         };
 
