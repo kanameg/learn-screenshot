@@ -3,6 +3,7 @@ let startX = 0;
 let startY = 0;
 let selectionBox = null;
 let overlayElement = null;
+let toMode = 'file';
 
 function toggleTextSelection(disable) {
     const style = document.createElement('style');
@@ -55,6 +56,21 @@ function createSelectionBox() {
         box-sizing: border-box;
     `;
     document.body.appendChild(selectionBox);
+
+    const sizeDisplay = document.createElement('div');
+    sizeDisplay.id = 'size-display';
+    sizeDisplay.style.cssText = `
+        position: absolute;
+        bottom: -25px;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: Arial;
+    `;
+    selectionBox.appendChild(sizeDisplay);
 }
 
 function updateSelectionBox(e) {
@@ -76,6 +92,12 @@ function updateSelectionBox(e) {
     selectionBox.style.width = width + 'px';
     selectionBox.style.height = height + 'px';
     selectionBox.style.display = 'block';
+
+    // サイズ表示を更新
+    const sizeDisplay = selectionBox.querySelector('#size-display');
+    if (sizeDisplay) {
+        sizeDisplay.textContent = `${Math.round(width)} x ${Math.round(height)}`;
+    }
 }
 
 function startSelection(e) {
@@ -113,6 +135,7 @@ function endSelection(e) {
         // 座標計算を単純化
         chrome.runtime.sendMessage({
             type: 'selectionComplete',
+            mode: toMode,
             clip: {
                 x: Math.round(left + scrollX),
                 y: Math.round(top + scrollY),
@@ -156,6 +179,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
     }
     if (message.type === 'startSelection') {
+        toMode = message.mode; // モードを取得 (デフォルトはファイルモード)
         initializeSelection();
     }
 });
