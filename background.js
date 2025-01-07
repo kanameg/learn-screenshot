@@ -1,3 +1,15 @@
+function generateScreenshotFileName() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    return `LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.png`;
+}
+
 async function copyImageToClipboard(base64Data, tabId) {
     try {
         await chrome.scripting.executeScript({
@@ -64,7 +76,7 @@ async function captureScreenshot(clip, toMode = 'file') {
             // ダウンロード処理
             await chrome.downloads.download({
                 url: `data:image/png;base64,${data}`,
-                filename: 'screenshot.png'
+                filename: generateScreenshotFileName()
             });
         }
 
