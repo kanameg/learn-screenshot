@@ -31,6 +31,13 @@
                 "mac": "Command+Shift+X"
             },
             "description": "Take a screenshot to clipboard"
+        },
+        "video-to-clipboard": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+0",
+                "mac": "Command+Shift+0"
+            },
+            "description": "Capture video area to clipboard"
         }
     },
     "host_permissions": [
