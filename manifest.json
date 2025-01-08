@@ -20,24 +20,24 @@
     "commands": {
         "screenshot-to-file": {
             "suggested_key": {
-                "default": "Ctrl+Shift+S",
-                "mac": "Command+Shift+S"
+                "default": "Ctrl+Shift+7",
+                "mac": "Command+Shift+7"
             },
-            "description": "Take a screenshot to file"
+            "description": "選択範囲をファイルに保存"
         },
         "screenshot-to-clipboard": {
             "suggested_key": {
-                "default": "Ctrl+Shift+X",
-                "mac": "Command+Shift+X"
+                "default": "Ctrl+Shift+8",
+                "mac": "Command+Shift+8"
             },
-            "description": "Take a screenshot to clipboard"
+            "description": "選択範囲をクリップボードに保存"
         },
         "video-to-clipboard": {
             "suggested_key": {
                 "default": "Ctrl+Shift+0",
                 "mac": "Command+Shift+0"
             },
-            "description": "Capture video area to clipboard"
+            "description": "ビデオ領域をクリップボードに保存"
         }
     },
     "host_permissions": [
