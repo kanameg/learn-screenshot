@@ -148,11 +148,23 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     if (message.type === 'selectionComplete') {
         if (message.mode === 'clipboard') {
             captureScreenshot(message.clip, 'clipboard');
+            chrome.tabs.sendMessage(sender.tab.id, {
+                type: 'showMessage',
+                message: 'クリップボードにコピーしました'
+            });
         } else {
             captureScreenshot(message.clip, 'file');
+            chrome.tabs.sendMessage(sender.tab.id, {
+                type: 'showMessage',
+                message: 'ファイルに保存しました'
+            });
         }
     } else if (message.type === 'videoDetected') {
         captureScreenshot(message.clip, 'clipboard');
+        chrome.tabs.sendMessage(sender.tab.id, {
+            type: 'showMessage',
+            message: 'クリップボードにコピーしました'
+        });
     }
 });
 

@@ -5,6 +5,29 @@ let selectionBox = null;
 let overlayElement = null;
 let toMode = 'file';
 
+function showMessage(message) {
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 20px 40px;
+        border-radius: 40px;
+        font-family: Arial, sans-serif;
+        font-size: 32px;
+        z-index: 2147483647;
+    `;
+    messageDiv.textContent = message;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 2000);
+}
+
 function toggleTextSelection(disable) {
     const style = document.createElement('style');
     style.id = 'screenshot-style';
@@ -206,7 +229,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 type: 'videoDetected',
                 clip: videoRect
             });
+        } else {
+            showMessage('ビデオの取得に失敗しました');
         }
+    }
+    if (message.type === 'showMessage') {
+        setTimeout(() => {
+            showMessage(message.message);
+        }, 1000);
     }
 });
 
