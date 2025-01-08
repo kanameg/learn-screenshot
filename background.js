@@ -126,17 +126,20 @@ async function startScreenshotSelection(tab, toMode) {
 
 // コマンドのリスナーを追加
 chrome.commands.onCommand.addListener(async (command) => {
-    if (command === 'screenshot-to-file') {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
+
+    switch (command) {
+        case 'screenshot-to-file':
             startScreenshotSelection(tab, 'file');
-        }
-    } else if (command === 'screenshot-to-clipboard') {
-        console.log('screenshot-to-clipboard command');
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab) {
+            break;
+        case 'screenshot-to-clipboard':
             startScreenshotSelection(tab, 'clipboard');
-        }
+            break;
+        case 'video-to-clipboard':
+            // video要素の検出を要求
+            chrome.tabs.sendMessage(tab.id, { type: 'captureVideo' });
+            break;
     }
 });
 
@@ -145,9 +148,23 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     if (message.type === 'selectionComplete') {
         if (message.mode === 'clipboard') {
             captureScreenshot(message.clip, 'clipboard');
+            chrome.tabs.sendMessage(sender.tab.id, {
+                type: 'showMessage',
+                message: 'クリップボードにコピーしました'
+            });
         } else {
             captureScreenshot(message.clip, 'file');
+            chrome.tabs.sendMessage(sender.tab.id, {
+                type: 'showMessage',
+                message: 'ファイルに保存しました'
+            });
         }
+    } else if (message.type === 'videoDetected') {
+        captureScreenshot(message.clip, 'clipboard');
+        chrome.tabs.sendMessage(sender.tab.id, {
+            type: 'showMessage',
+            message: 'クリップボードにコピーしました'
+        });
     }
 });
 

@@ -5,6 +5,29 @@ let selectionBox = null;
 let overlayElement = null;
 let toMode = 'file';
 
+function showMessage(message) {
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 20px 40px;
+        border-radius: 40px;
+        font-family: Arial, sans-serif;
+        font-size: 32px;
+        z-index: 2147483647;
+    `;
+    messageDiv.textContent = message;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 2000);
+}
+
 function toggleTextSelection(disable) {
     const style = document.createElement('style');
     style.id = 'screenshot-style';
@@ -163,6 +186,23 @@ function cleanup() {
     // overlayElementは削除済みなので、イベントリスナーも削除されている
 }
 
+// video要素の検出関数
+function findVideoElement() {
+    const video = document.querySelector('video');
+    if (!video) return null;
+
+    const rect = video.getBoundingClientRect();
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+
+    return {
+        x: Math.round(rect.left + scrollX),
+        y: Math.round(rect.top + scrollY),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+    };
+}
+
 function initializeSelection() {
     toggleTextSelection(true); // テキストが選択されないように無効化する
     createOverlay(); // クリックが要素に伝わらないようにオーバレイを作成する
@@ -181,6 +221,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'startSelection') {
         toMode = message.mode; // モードを取得 (デフォルトはファイルモード)
         initializeSelection();
+    }
+    if (message.type === 'captureVideo') {
+        const videoRect = findVideoElement();
+        if (videoRect) {
+            chrome.runtime.sendMessage({
+                type: 'videoDetected',
+                clip: videoRect
+            });
+        } else {
+            showMessage('ビデオの取得に失敗しました');
+        }
+    }
+    if (message.type === 'showMessage') {
+        setTimeout(() => {
+            showMessage(message.message);
+        }, 1000);
     }
 });
 
