@@ -134,6 +134,23 @@ chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return;
 
+    // 特殊なURLをスキップ
+    const url = tab.url;
+    if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('about:') || url.startsWith('file://')) {
+        //console.error('Cannot inject content script into special URL:', url);
+        return;
+    }
+
+    // コンテンツスクリプトを挿入
+    try {
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
+        });
+    } catch (error) {
+        console.error('Error injecting content script:', error);
+    }
+
     switch (command) {
         case 'screenshot-to-file':
             startScreenshotSelection(tab, 'file');
