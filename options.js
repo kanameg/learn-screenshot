@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const scaleInput = document.getElementById('scale');
     const qualityInput = document.getElementById('quality');
+    const formatSelect = document.getElementById('format');
     const saveButton = document.getElementById('save');
 
     // 設定値の読み込み
-    chrome.storage.sync.get(['scale', 'quality'], (result) => {
+    chrome.storage.sync.get(['scale', 'quality', 'format'], (result) => {
         if (result.scale) {
             scaleInput.value = result.scale;
             console.log(result.scale);
@@ -16,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(result.quality);
         } else {
             qualityInput.value = 100; // デフォルト値を設定
+        }
+        if (result.format) {
+            formatSelect.value = result.format;
+        } else {
+            formatSelect.value = 'png'; // デフォルト値を設定
         }
     });
 
@@ -41,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveButton.addEventListener('click', () => {
         const scale = parseFloat(scaleInput.value);
         const quality = parseInt(qualityInput.value, 10);
+        const format = formatSelect.value;
         if (isNaN(scale) || scale <= 0 || scale > 2) {
             alert('スケール値は0.1から2.0の間で入力してください');
             return;
@@ -49,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('品質値は1から100の間で入力してください');
             return;
         }
-        chrome.storage.sync.set({ scale, quality }, () => {
+        chrome.storage.sync.set({ scale, quality, format }, () => {
             showSavedMessage();
         });
     });

@@ -80,11 +80,25 @@
 
         <div class="setting-group">
             <label>
+                保存ファイル形式:
+                <select id="format">
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="webp">WebP</option>
+                </select>
+            </label>
+            <div style="font-size: 12px; color: #666;">
+                スクリーンショットのファイル形式を選択します
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>
                 キャプチャ品質:
                 <input type="number" id="quality" min="1" max="100" step="1">
             </label>
             <div style="font-size: 12px; color: #666;">
-                スクリーンショットの品質を調整します（1 ~ 100） ※JPEGのみ
+                スクリーンショットの品質を調整します（1 ~ 100） ※JPEGのみ有効
             </div>
         </div>
 

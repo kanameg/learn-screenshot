@@ -1,4 +1,4 @@
-function generateScreenshotFileName() {
+function generateScreenshotFileName(format = 'png') {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -6,8 +6,9 @@ function generateScreenshotFileName() {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
+    console.log(`LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.${format}`);
     
-    return `LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.png`;
+    return `LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.${format}`;
 }
 
 async function copyImageToClipboard(base64Data, tabId) {
@@ -51,11 +52,12 @@ async function captureScreenshot(clip, toMode = 'file') {
         // 新しいデバッガー接続を確立
         await chrome.debugger.attach({ tabId: tab.id }, "1.3");
 
-        // スクリーンショットのスケールと品質を取得
-        const { scale = 1, quality = 100 } = await chrome.storage.sync.get(['scale', 'quality']);
+        // スクリーンショットのスケールと品質、ファイルフォーマットを取得
+        const { scale = 1, quality = 100, format = 'png' } = await chrome.storage.sync.get(['scale', 'quality', 'format']);
+        console.log('scale:', scale, 'quality:', quality, 'format:', format);
 
         const screenshotParams = {
-            format: "png",
+            format: format,
             quality: quality,
             clip: {
                 ...clip,
@@ -78,8 +80,8 @@ async function captureScreenshot(clip, toMode = 'file') {
         } else if (toMode === 'file') {
             // ダウンロード処理
             await chrome.downloads.download({
-                url: `data:image/png;base64,${data}`,
-                filename: generateScreenshotFileName()
+                url: `data:image/${format};base64,${data}`,
+                filename: generateScreenshotFileName(format)
             });
         }
 
