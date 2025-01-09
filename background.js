@@ -51,12 +51,15 @@ async function captureScreenshot(clip, toMode = 'file') {
         // 新しいデバッガー接続を確立
         await chrome.debugger.attach({ tabId: tab.id }, "1.3");
 
+        // スクリーンショットのスケールを取得
+        const { scale = 1 } = await chrome.storage.sync.get('scale');
+
         const screenshotParams = {
             format: "png",
             quality: 100,
             clip: {
                 ...clip,
-                scale: 0.5 // 0.5で実ピクセルサイズになる
+                scale: scale // scale = 1で実ピクセルサイズになる
             }
         };
 
