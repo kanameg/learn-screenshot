@@ -142,13 +142,24 @@ chrome.commands.onCommand.addListener(async (command) => {
     }
 
     // コンテンツスクリプトを挿入
+    // try {
+    //     await chrome.scripting.executeScript({
+    //         target: { tabId: tab.id },
+    //         files: ['content.js']
+    //     });
+    // } catch (error) {
+    //     console.error('Error injecting content script:', error);
+    // }
+
+    // コンテンツスクリプトが挿入されているか確認
+    // 応答がない場合は再度コンテンツスクリプトを挿入
     try {
+        await chrome.tabs.sendMessage(tab.id, { type: 'ping' });
+    } catch (error) {
         await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             files: ['content.js']
         });
-    } catch (error) {
-        console.error('Error injecting content script:', error);
     }
 
     switch (command) {
