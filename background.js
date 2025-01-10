@@ -84,7 +84,6 @@ async function captureScreenshot(clip, toMode = 'file') {
                 filename: generateScreenshotFileName(format)
             });
         }
-
     } catch (error) {
         console.error('Screenshot capture error:', error);
         // エラー発生時にデバッガーが接続されていれば切断
@@ -141,16 +140,6 @@ chrome.commands.onCommand.addListener(async (command) => {
         return;
     }
 
-    // コンテンツスクリプトを挿入
-    // try {
-    //     await chrome.scripting.executeScript({
-    //         target: { tabId: tab.id },
-    //         files: ['content.js']
-    //     });
-    // } catch (error) {
-    //     console.error('Error injecting content script:', error);
-    // }
-
     // コンテンツスクリプトが挿入されているか確認
     // 応答がない場合は再度コンテンツスクリプトを挿入
     try {
@@ -171,37 +160,34 @@ chrome.commands.onCommand.addListener(async (command) => {
             break;
         case 'video-to-clipboard':
             // video要素の検出を要求
-            chrome.tabs.sendMessage(tab.id, { type: 'captureVideo' });
+            chrome.tabs.sendMessage(tab.id, { type: 'captureVideo', mode: 'clipboard' });
+            break;
+        case 'video-to-file':
+            chrome.tabs.sendMessage(tab.id, { type: 'captureVideo', mode: 'file' });
             break;
     }
 });
 
 // コンテンツスクリプトからの選択完了メッセージを受け取る
 chrome.runtime.onMessage.addListener((message, sender) => {
-    if (message.type === 'selectionComplete') {
-        if (message.mode === 'clipboard') {
-            captureScreenshot(message.clip, 'clipboard');
-            chrome.tabs.sendMessage(sender.tab.id, {
-                type: 'showMessage',
-                message: 'クリップボードにコピーしました'
-            });
-        } else {
-            captureScreenshot(message.clip, 'file');
-            chrome.tabs.sendMessage(sender.tab.id, {
-                type: 'showMessage',
-                message: 'ファイルに保存しました'
-            });
-        }
-    } else if (message.type === 'videoDetected') {
-        captureScreenshot(message.clip, 'clipboard');
+    if (message.type === 'selectionComplete' || message.type === 'videoDetected') {
+        captureScreenshot(message.clip, message.mode);
+    }
+    // 完了メッセージを表示
+    if (message.mode === 'clipboard') {
         chrome.tabs.sendMessage(sender.tab.id, {
             type: 'showMessage',
             message: 'クリップボードにコピーしました'
+        });
+    } else if (message.mode === 'file') {
+        chrome.tabs.sendMessage(sender.tab.id, {
+            type: 'showMessage',
+            message: 'ファイルに保存しました'
         });
     }
 });
 
 // アイコンクリックのリスナー
 chrome.action.onClicked.addListener(async (tab) => {
-    startScreenshotSelection(tab);
+    startScreenshotSelection(tab, 'file');
 });
