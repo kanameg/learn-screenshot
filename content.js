@@ -1,3 +1,6 @@
+/**
+ * 複数回実行される可能性があるため、関数化して内部で変数宣言を行う
+ */
 (function () {
     let isSelecting = false;
     let startX = 0;
@@ -6,6 +9,10 @@
     let overlayElement = null;
     let toMode = 'file';
 
+    /**
+     * メッセージを表示する（キャプチャ完了・エラー時）
+     * @param {*} message 
+     */
     function showMessage(message) {
         const messageDiv = document.createElement('div');
         messageDiv.style.cssText = `
@@ -29,6 +36,11 @@
         }, 2000);
     }
 
+    /**
+     * テキスト選択を有効・無効化する
+     * @param {*} disable
+     * @returns
+     */
     function toggleTextSelection(disable) {
         const style = document.createElement('style');
         style.id = 'screenshot-style';
@@ -49,6 +61,10 @@
         }
     }
 
+    /**
+     * クリックなどがページに影響しないようにオーバレイを作成
+     * @returns
+     */
     function createOverlay() {
         overlayElement = document.createElement('div');
         overlayElement.style.cssText = `
@@ -64,6 +80,10 @@
         document.body.appendChild(overlayElement);
     }
 
+    /**
+     * 選択範囲を表示するボックスを作成
+     * @returns
+     */
     function createSelectionBox() {
         if (selectionBox) {
             selectionBox.remove();
@@ -97,6 +117,11 @@
         selectionBox.appendChild(sizeDisplay);
     }
 
+    /**
+     * 選択範囲を表示するボックスを更新
+     * @param {*} e 
+     * @returns 
+     */
     function updateSelectionBox(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -124,6 +149,10 @@
         }
     }
 
+    /**
+     * 選択範囲を表示するボックスを表示開始
+     * @param {*} e 
+     */
     function startSelection(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -172,6 +201,10 @@
         cleanup();
     }
 
+    /**
+     * 選択中の状態を解除し不要な要素を削除
+     * @returns
+     */
     function cleanup() {
         if (selectionBox) {
             selectionBox.remove();
@@ -187,7 +220,24 @@
         // overlayElementは削除済みなので、イベントリスナーも削除されている
     }
 
-    // video要素の検出関数
+    /**
+     * キャプチャ領域の選択開始処理
+     * @returns
+     */
+    function initializeSelection() {
+        toggleTextSelection(true); // テキストが選択されないように無効化する
+        createOverlay(); // クリックが要素に伝わらないようにオーバレイを作成する
+
+        // オーバレイにイベントリスナーを追加
+        overlayElement.addEventListener('mousedown', startSelection, true);
+        overlayElement.addEventListener('mousemove', updateSelectionBox, true);
+        overlayElement.addEventListener('mouseup', endSelection, true);
+    }
+
+    /**
+     * video要素の領域検出関数
+     * @returns 
+     */
     function findVideoElement() {
         const video = document.querySelector('video');
         if (!video) return null;
@@ -204,16 +254,13 @@
         };
     }
 
-    function initializeSelection() {
-        toggleTextSelection(true); // テキストが選択されないように無効化する
-        createOverlay(); // クリックが要素に伝わらないようにオーバレイを作成する
-
-        // オーバレイにイベントリスナーを追加
-        overlayElement.addEventListener('mousedown', startSelection, true);
-        overlayElement.addEventListener('mousemove', updateSelectionBox, true);
-        overlayElement.addEventListener('mouseup', endSelection, true);
-    }
-
+    /**
+     * メッセージリスナーを追加
+     * @param {*} message
+     * @param {*} sender
+     * @param {*} sendResponse
+     * @returns
+     */
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === 'ping') {
             sendResponse({ status: 'ok' });

@@ -1,3 +1,8 @@
+/**
+ * 保存するファイル名を生成
+ * @param {*} format 
+ * @returns 
+ */
 function generateScreenshotFileName(format = 'png') {
     const now = new Date();
     const year = now.getFullYear();
@@ -11,6 +16,12 @@ function generateScreenshotFileName(format = 'png') {
     return `LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.${format}`;
 }
 
+/**
+ * 画像データをクリップボードにコピー
+ * @param {*} base64Data
+ * @param {*} tabId
+ * @returns
+ */
 async function copyImageToClipboard(base64Data, tabId) {
     try {
         await chrome.scripting.executeScript({
@@ -32,6 +43,12 @@ async function copyImageToClipboard(base64Data, tabId) {
     }
 }
 
+/**
+ * 指定エリアをスクリーンショットしてキャプチャ
+ * @param {*} clip
+ * @param {*} toMode
+ * @returns
+ */
 async function captureScreenshot(clip, toMode = 'file') {
     let attachedTab = null;
     try {
@@ -101,34 +118,9 @@ async function captureScreenshot(clip, toMode = 'file') {
     }
 }
 
-// スクリーンショット開始処理を関数に切り出し
-async function startScreenshotSelection(tab, toMode) {
-    try {
-        try {
-            await chrome.tabs.sendMessage(tab.id, { type: 'ping' });
-        } catch (error) {
-            await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: ['content.js']
-            });
-        }
-        
-        setTimeout(async () => {
-            try {
-                await chrome.tabs.sendMessage(tab.id, {
-                    type: 'startSelection',
-                    mode: toMode
-                });
-            } catch (error) {
-                console.error('Error starting selection:', error);
-            }
-        }, 100);
-    } catch (error) {
-        console.error('Error in handling screenshot:', error);
-    }
-}
-
-// コマンドのリスナーを追加
+/**
+ * コマンドのリスナーを追加
+ */
 chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return;
@@ -153,10 +145,12 @@ chrome.commands.onCommand.addListener(async (command) => {
 
     switch (command) {
         case 'screenshot-to-file':
-            startScreenshotSelection(tab, 'file');
+            //startScreenshotSelection(tab, 'file');
+            chrome.tabs.sendMessage(tab.id, { type: 'startSelection', mode: 'file' });
             break;
         case 'screenshot-to-clipboard':
-            startScreenshotSelection(tab, 'clipboard');
+            //startScreenshotSelection(tab, 'clipboard');
+            chrome.tabs.sendMessage(tab.id, { type: 'startSelection', mode: 'clipboard' });
             break;
         case 'video-to-clipboard':
             // video要素の検出を要求
@@ -168,7 +162,9 @@ chrome.commands.onCommand.addListener(async (command) => {
     }
 });
 
-// コンテンツスクリプトからの選択完了メッセージを受け取る
+/**
+ * コンテンツスクリプトからの選択完了メッセージを受け取る
+ */
 chrome.runtime.onMessage.addListener((message, sender) => {
     if (message.type === 'selectionComplete' || message.type === 'videoDetected') {
         captureScreenshot(message.clip, message.mode);
