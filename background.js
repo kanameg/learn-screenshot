@@ -1,4 +1,4 @@
-function generateScreenshotFileName() {
+function generateScreenshotFileName(format = 'png') {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -6,8 +6,9 @@ function generateScreenshotFileName() {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
+    console.log(`LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.${format}`);
     
-    return `LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.png`;
+    return `LearnShot-${year}${month}${day}-${hours}${minutes}${seconds}.${format}`;
 }
 
 async function copyImageToClipboard(base64Data, tabId) {
@@ -51,12 +52,13 @@ async function captureScreenshot(clip, toMode = 'file') {
         // 新しいデバッガー接続を確立
         await chrome.debugger.attach({ tabId: tab.id }, "1.3");
 
-        // スクリーンショットのスケールを取得
-        const { scale = 1 } = await chrome.storage.sync.get('scale');
+        // スクリーンショットのスケールと品質、ファイルフォーマットを取得
+        const { scale = 1, quality = 100, format = 'png' } = await chrome.storage.sync.get(['scale', 'quality', 'format']);
+        console.log('scale:', scale, 'quality:', quality, 'format:', format);
 
         const screenshotParams = {
-            format: "png",
-            quality: 100,
+            format: format,
+            quality: quality,
             clip: {
                 ...clip,
                 scale: scale // scale = 1で実ピクセルサイズになる
@@ -78,8 +80,8 @@ async function captureScreenshot(clip, toMode = 'file') {
         } else if (toMode === 'file') {
             // ダウンロード処理
             await chrome.downloads.download({
-                url: `data:image/png;base64,${data}`,
-                filename: generateScreenshotFileName()
+                url: `data:image/${format};base64,${data}`,
+                filename: generateScreenshotFileName(format)
             });
         }
 
@@ -131,6 +133,34 @@ async function startScreenshotSelection(tab, toMode) {
 chrome.commands.onCommand.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return;
+
+    // 特殊なURLをスキップ
+    const url = tab.url;
+    if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('about:') || url.startsWith('file://')) {
+        //console.error('Cannot inject content script into special URL:', url);
+        return;
+    }
+
+    // コンテンツスクリプトを挿入
+    // try {
+    //     await chrome.scripting.executeScript({
+    //         target: { tabId: tab.id },
+    //         files: ['content.js']
+    //     });
+    // } catch (error) {
+    //     console.error('Error injecting content script:', error);
+    // }
+
+    // コンテンツスクリプトが挿入されているか確認
+    // 応答がない場合は再度コンテンツスクリプトを挿入
+    try {
+        await chrome.tabs.sendMessage(tab.id, { type: 'ping' });
+    } catch (error) {
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
+        });
+    }
 
     switch (command) {
         case 'screenshot-to-file':
