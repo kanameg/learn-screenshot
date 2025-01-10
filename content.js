@@ -228,7 +228,8 @@
             if (videoRect) {
                 chrome.runtime.sendMessage({
                     type: 'videoDetected',
-                    clip: videoRect
+                    clip: videoRect,
+                    mode: message.mode
                 });
             } else {
                 showMessage('ビデオの取得に失敗しました');
