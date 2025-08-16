@@ -54,17 +54,17 @@
 
         const copyBtn = document.createElement('button');
         copyBtn.textContent = 'コピー';
-        copyBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+        copyBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
         btnRow.appendChild(copyBtn);
 
         const downloadBtn = document.createElement('button');
         downloadBtn.textContent = 'ダウンロード';
-        downloadBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+        downloadBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
         btnRow.appendChild(downloadBtn);
 
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '閉じる';
-        closeBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+        closeBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; margin-top: 10px;';
         btnRow.appendChild(closeBtn);
 
         panel.appendChild(btnRow);
@@ -400,17 +400,17 @@
 
                             const copyBtn = document.createElement('button');
                             copyBtn.textContent = 'コピー';
-                            copyBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+                            copyBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
                             btnRow.appendChild(copyBtn);
 
                             const downloadBtn = document.createElement('button');
                             downloadBtn.textContent = 'ダウンロード';
-                            downloadBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+                            downloadBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
                             btnRow.appendChild(downloadBtn);
 
                             const closeBtn = document.createElement('button');
                             closeBtn.textContent = '閉じる';
-                            closeBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+                            closeBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
                             btnRow.appendChild(closeBtn);
 
                             panel.appendChild(btnRow);
