@@ -157,19 +157,30 @@
 
         if (width > 0 && height > 0) {
             // 座標計算を単純化
-            chrome.runtime.sendMessage({
-                type: 'selectionComplete',
-                mode: toMode,
-                clip: {
-                    x: Math.round(left + scrollX),
-                    y: Math.round(top + scrollY),
-                    width: Math.round(width),
-                    height: Math.round(height)
-                }
-            });
-        }
+            const clip = {
+                x: Math.round(left + scrollX),
+                y: Math.round(top + scrollY),
+                width: Math.round(width),
+                height: Math.round(height)
+            };
 
-        cleanup();
+            // まずオーバーレイや選択表示を消してからキャプチャ要求を送る。
+            // ブラウザが DOM の変更を描画する時間を少し待つことで、
+            // ラバーバンド（overlay）がキャプチャに含まれるのを防ぐ。
+            cleanup();
+            // cleanup() の DOM 変更が描画されるまで 2 フレーム待つ（確実にペイントを反映させる）
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    chrome.runtime.sendMessage({
+                        type: 'selectionComplete',
+                        mode: toMode,
+                        clip
+                    });
+                });
+            });
+        } else {
+            cleanup();
+        }
     }
 
     function cleanup() {

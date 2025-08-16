@@ -225,8 +225,19 @@ chrome.commands.onCommand.addListener(async (command) => {
 // コンテンツスクリプトからの選択完了メッセージを受け取る
 chrome.runtime.onMessage.addListener((message, sender) => {
     const tabId = sender && sender.tab && sender.tab.id;
-    if ((message.type === 'selectionComplete' || message.type === 'videoDetected') && tabId) {
-        captureScreenshot(tabId, message.clip, message.mode);
+    if (message.type === 'selectionComplete' || message.type === 'videoDetected') {
+        if (tabId) {
+            captureScreenshot(tabId, message.clip, message.mode);
+        } else {
+            // sender.tab がない場合のフォールバック: アクティブタブを探す
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs && tabs[0] && tabs[0].id) {
+                    captureScreenshot(tabs[0].id, message.clip, message.mode);
+                } else {
+                    console.error('onMessage: no sender.tab and no active tab found');
+                }
+            });
+        }
     }
     // 完了メッセージを表示（最小限のガード）
     if (tabId) {
