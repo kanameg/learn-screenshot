@@ -27,9 +27,41 @@ async function copyImageToClipboard(base64Data, tabId) {
             args: [base64Data]
         });
         console.log('画像をクリップボードにコピーしました');
+    return true;
     } catch (error) {
         console.error('クリップボードへのコピーに失敗:', error);
+    return false;
     }
+}
+
+// Try to send a showMessage to the tab; if the content script isn't present, inject it and retry.
+function sendShowMessage(tabId, message) {
+    return new Promise((resolve) => {
+        try {
+            chrome.tabs.sendMessage(tabId, { type: 'showMessage', message }, (resp) => {
+                const last = chrome.runtime.lastError;
+                if (!last) return resolve(true);
+                // try injecting content script then resend
+                try {
+                    chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] }, () => {
+                        // ignore errors from injection
+                        try { chrome.tabs.sendMessage(tabId, { type: 'showMessage', message }, () => resolve(true)); } catch (e) { resolve(false); }
+                    });
+                } catch (e) {
+                    resolve(false);
+                }
+            });
+        } catch (e) {
+            // fallback: try to inject then send
+            try {
+                chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] }, () => {
+                    try { chrome.tabs.sendMessage(tabId, { type: 'showMessage', message }, () => resolve(true)); } catch (e) { resolve(false); }
+                });
+            } catch (ee) {
+                resolve(false);
+            }
+        }
+    });
 }
 
 async function captureScreenshot(tabId, clip, toMode = 'file') {
@@ -77,15 +109,23 @@ async function captureScreenshot(tabId, clip, toMode = 'file') {
         try { await new Promise((r) => chrome.debugger.detach({ tabId: tabId }, r)); } catch (e) { /* ignore */ }
         attached = false;
 
+
         const data = result && result.data;
         if (toMode === 'clipboard') {
-            await copyImageToClipboard(data, tabId);
-        } else {
-            await chrome.downloads.download({ url: `data:image/${format};base64,${data}`, filename: generateScreenshotFileName(format) });
+            const ok = await copyImageToClipboard(data, tabId);
+            if (ok) {
+                await sendShowMessage(tabId, 'クリップボードにコピーしました');
+            } else {
+                await sendShowMessage(tabId, 'クリップボードへのコピーに失敗しました');
+            }
+            } else {
+                try { await chrome.downloads.download({ url: `data:image/${format};base64,${data}`, filename: generateScreenshotFileName(format) });
+                    // ブラウザ側でダウンロード通知が行われるため、成功メッセージは表示しない
+                } catch (dlErr) {
+                    console.error('downloads.download failed:', dlErr);
+                    await sendShowMessage(tabId, 'ファイルの保存に失敗しました');
+                }
         }
-
-        // notify page (best-effort)
-        try { chrome.tabs.sendMessage(tabId, { type: 'showMessage', message: toMode === 'clipboard' ? 'クリップボードにコピーしました' : 'ファイルに保存しました' }); } catch (e) { /* ignore */ }
 
         return;
     } catch (err) {
@@ -239,20 +279,7 @@ chrome.runtime.onMessage.addListener((message, sender) => {
             });
         }
     }
-    // 完了メッセージを表示（最小限のガード）
-    if (tabId) {
-        if (message.mode === 'clipboard') {
-            chrome.tabs.sendMessage(tabId, {
-                type: 'showMessage',
-                message: 'クリップボードにコピーしました'
-            });
-        } else if (message.mode === 'file') {
-            chrome.tabs.sendMessage(tabId, {
-                type: 'showMessage',
-                message: 'ファイルに保存しました'
-            });
-        }
-    }
+    // note: do not send success messages here. captureScreenshot will notify on real success.
 });
 
 // アイコンクリックのリスナー
