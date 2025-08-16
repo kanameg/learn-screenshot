@@ -121,19 +121,21 @@ async function captureScreenshot(tabId, clip, toMode = 'file') {
 
         const data = result && result.data;
         if (toMode === 'clipboard') {
-            const ok = await copyImageToClipboard(data, tabId);
-            if (ok) {
-                await sendShowMessage(tabId, 'クリップボードにコピーしました');
-            } else {
-                await sendShowMessage(tabId, 'クリップボードへのコピーに失敗しました');
+            // CDP成功時もプレビュー画面を表示するため、content.jsにデータを送信
+            const dataUrl = `data:image/${format};base64,${data}`;
+            chrome.tabs.sendMessage(tabId, {
+                type: 'showPreviewForClipboard',
+                dataUrl: dataUrl,
+                filename: generateScreenshotFileName(format)
+            });
+        } else {
+            try { 
+                await chrome.downloads.download({ url: `data:image/${format};base64,${data}`, filename: generateScreenshotFileName(format) });
+                // ブラウザ側でダウンロード通知が行われるため、成功メッセージは表示しない
+            } catch (dlErr) {
+                console.error('downloads.download failed:', dlErr);
+                await sendShowMessage(tabId, 'ファイルの保存に失敗しました');
             }
-            } else {
-                try { await chrome.downloads.download({ url: `data:image/${format};base64,${data}`, filename: generateScreenshotFileName(format) });
-                    // ブラウザ側でダウンロード通知が行われるため、成功メッセージは表示しない
-                } catch (dlErr) {
-                    console.error('downloads.download failed:', dlErr);
-                    await sendShowMessage(tabId, 'ファイルの保存に失敗しました');
-                }
         }
 
         return;

@@ -29,6 +29,80 @@
         }, 2000);
     }
 
+    // CDP成功時のプレビュー表示関数
+    function showClipboardPreview(dataUrl, filename) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.5); z-index: 2147483647;
+        `;
+
+        const panel = document.createElement('div');
+        panel.style.cssText = `
+            background: white; padding: 12px; border-radius: 8px; max-width: 90%; max-height: 90%;
+            display: flex; flex-direction: column; gap: 8px; align-items: center;
+        `;
+
+        const imgPreview = document.createElement('img');
+        imgPreview.src = dataUrl;
+        imgPreview.style.cssText = 'max-width: 80vw; max-height: 60vh;';
+        panel.appendChild(imgPreview);
+
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex; gap:8px;';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'コピー';
+        copyBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+        btnRow.appendChild(copyBtn);
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'ダウンロード';
+        downloadBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+        btnRow.appendChild(downloadBtn);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '閉じる';
+        closeBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+        btnRow.appendChild(closeBtn);
+
+        panel.appendChild(btnRow);
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+
+        const cleanupOverlay = () => { overlay.remove(); };
+
+        copyBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                showMessage('クリップボードにコピーしました');
+                cleanupOverlay();
+            } catch (e) {
+                console.error('Clipboard write failed:', e);
+                showMessage('クリップボードへのコピーに失敗しました');
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            try {
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = filename || 'screenshot.png';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                cleanupOverlay();
+            } catch (e) {
+                console.error('Download failed:', e);
+            }
+        });
+
+        closeBtn.addEventListener('click', cleanupOverlay);
+    }
+
     function toggleTextSelection(disable) {
         const style = document.createElement('style');
         style.id = 'screenshot-style';
@@ -252,6 +326,10 @@
             setTimeout(() => {
                 showMessage(message.message);
             }, 1000);
+        }
+        if (message.type === 'showPreviewForClipboard') {
+            // CDP成功時のプレビュー表示
+            showClipboardPreview(message.dataUrl, message.filename);
         }
         if (message.type === 'fallbackCapture') {
             (async () => {
