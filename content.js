@@ -240,6 +240,127 @@
                 showMessage(message.message);
             }, 1000);
         }
+        if (message.type === 'fallbackCapture') {
+            (async () => {
+                try {
+                    const { dataUrl, clip, mode, filename } = message;
+                    // 画像を読み込みキャンバスでクロップ
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = dataUrl;
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                    });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = clip.width;
+                    canvas.height = clip.height;
+                    const ctx = canvas.getContext('2d');
+                    // visibleTab の dataUrl はビューポート基準なので clip の座標はそのまま使う
+                    ctx.drawImage(img, clip.x - window.scrollX, clip.y - window.scrollY, clip.width, clip.height, 0, 0, clip.width, clip.height);
+
+                    if (mode === 'file') {
+                        canvas.toBlob((blob) => {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = filename || 'screenshot.png';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                        }, 'image/png');
+                    } else if (mode === 'clipboard') {
+                        try {
+                            // ブラウザのセキュリティ上、自動での clipboard 書き込みが失敗することがあるため
+                            // ここではプレビューと「コピー」ボタンを表示して、ユーザーのクリックでコピーを実行する。
+                            const overlay = document.createElement('div');
+                            overlay.style.cssText = `
+                                position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+                                display: flex; align-items: center; justify-content: center;
+                                background: rgba(0,0,0,0.5); z-index: 2147483647;
+                            `;
+
+                            const panel = document.createElement('div');
+                            panel.style.cssText = `
+                                background: white; padding: 12px; border-radius: 8px; max-width: 90%; max-height: 90%;
+                                display: flex; flex-direction: column; gap: 8px; align-items: center;
+                            `;
+
+                            const imgPreview = document.createElement('img');
+                            imgPreview.src = canvas.toDataURL('image/png');
+                            imgPreview.style.maxWidth = '80vw';
+                            imgPreview.style.maxHeight = '60vh';
+                            panel.appendChild(imgPreview);
+
+                            const btnRow = document.createElement('div');
+                            btnRow.style.cssText = 'display:flex; gap:8px;';
+
+                            const copyBtn = document.createElement('button');
+                            copyBtn.textContent = 'コピー';
+                            copyBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+                            btnRow.appendChild(copyBtn);
+
+                            const downloadBtn = document.createElement('button');
+                            downloadBtn.textContent = 'ダウンロード';
+                            downloadBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+                            btnRow.appendChild(downloadBtn);
+
+                            const closeBtn = document.createElement('button');
+                            closeBtn.textContent = '閉じる';
+                            closeBtn.style.cssText = 'padding:8px 12px; font-size:14px;';
+                            btnRow.appendChild(closeBtn);
+
+                            panel.appendChild(btnRow);
+                            overlay.appendChild(panel);
+                            document.body.appendChild(overlay);
+
+                            const cleanupOverlay = () => { overlay.remove(); };
+
+                            copyBtn.addEventListener('click', async () => {
+                                try {
+                                    // ユーザー操作の文脈で clipboard に書き込む
+                                    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+                                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                                    showMessage('クリップボードにコピーしました');
+                                    cleanupOverlay();
+                                } catch (e) {
+                                    console.error('Clipboard write failed on user click:', e);
+                                    showMessage('クリップボードへのコピーに失敗しました');
+                                }
+                            });
+
+                            downloadBtn.addEventListener('click', () => {
+                                try {
+                                    canvas.toBlob((blob) => {
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = filename || 'screenshot.png';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        a.remove();
+                                        URL.revokeObjectURL(url);
+                                        cleanupOverlay();
+                                    }, 'image/png');
+                                } catch (e) {
+                                    console.error('Download failed from preview:', e);
+                                }
+                            });
+
+                            closeBtn.addEventListener('click', cleanupOverlay);
+
+                        } catch (e) {
+                            console.error('Fallback preview handling failed:', e);
+                            showMessage('処理に失敗しました');
+                        }
+                    }
+                } catch (e) {
+                    console.error('fallbackCapture handling failed:', e);
+                }
+            })();
+        }
     });
 
     // ページ遷移やクローズ時に選択中の状態を解除する

@@ -32,71 +32,125 @@ async function copyImageToClipboard(base64Data, tabId) {
     }
 }
 
-async function captureScreenshot(clip, toMode = 'file') {
-    let attachedTab = null;
+async function captureScreenshot(tabId, clip, toMode = 'file') {
+    let attached = false;
     try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        attachedTab = tab.id;
+        const tab = await chrome.tabs.get(tabId);
 
-        // 既存のデバッガー接続を確認して切断
-        try {
-            const debuggerInfo = await chrome.debugger.getTargets();
-            const isAttached = debuggerInfo.some(d => d.tabId === tab.id && d.attached);
-            if (isAttached) {
-                await chrome.debugger.detach({ tabId: tab.id });
-            }
-        } catch (e) {
-            // エラーを無視（デバッガーが接続されていない場合など）
+        const url = tab.url || '';
+        // 特殊なURLにはデバッガーをアタッチしない
+        if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('about:') || url.startsWith('file://')) {
+            throw new Error('cannot-attach-to-special-url');
         }
 
-        // 新しいデバッガー接続を確立
-        await chrome.debugger.attach({ tabId: tab.id }, "1.3");
+        // try attach debugger and capture via CDP
+        await new Promise((resolve, reject) => {
+            chrome.debugger.attach({ tabId: tabId }, '1.3', () => {
+                const last = chrome.runtime.lastError;
+                if (last) reject(last); else resolve();
+            });
+        });
+        attached = true;
 
-        // スクリーンショットのスケールと品質、ファイルフォーマットを取得
-        const { scale = 1, quality = 100, format = 'png' } = await chrome.storage.sync.get(['scale', 'quality', 'format']);
-        console.log('scale:', scale, 'quality:', quality, 'format:', format);
+        const storage = await new Promise((resolve) => chrome.storage.sync.get(['scale', 'quality', 'format'], resolve));
+        const scale = storage.scale || 1;
+        const quality = storage.quality || 100;
+        const format = storage.format || 'png';
 
-        const screenshotParams = {
+        const params = {
             format: format,
             quality: quality,
             clip: {
                 ...clip,
-                scale: scale // scale = 1で実ピクセルサイズになる
+                scale: scale
             }
         };
 
-        const { data } = await chrome.debugger.sendCommand(
-            { tabId: tab.id },
-            "Page.captureScreenshot",
-            screenshotParams
-        );
-
-        // スクリーンショット取得後にデバッガーを切断
-        await chrome.debugger.detach({ tabId: tab.id });
-        
-        if (toMode === 'clipboard') {
-            // クリップボードにコピー
-            await copyImageToClipboard(data, tab.id);
-        } else if (toMode === 'file') {
-            // ダウンロード処理
-            await chrome.downloads.download({
-                url: `data:image/${format};base64,${data}`,
-                filename: generateScreenshotFileName(format)
+        const result = await new Promise((resolve, reject) => {
+            chrome.debugger.sendCommand({ tabId: tabId }, 'Page.captureScreenshot', params, (resp) => {
+                const last = chrome.runtime.lastError;
+                if (last) reject(last); else resolve(resp);
             });
+        });
+
+        // detach
+        try { await new Promise((r) => chrome.debugger.detach({ tabId: tabId }, r)); } catch (e) { /* ignore */ }
+        attached = false;
+
+        const data = result && result.data;
+        if (toMode === 'clipboard') {
+            await copyImageToClipboard(data, tabId);
+        } else {
+            await chrome.downloads.download({ url: `data:image/${format};base64,${data}`, filename: generateScreenshotFileName(format) });
         }
-    } catch (error) {
-        console.error('Screenshot capture error:', error);
-        // エラー発生時にデバッガーが接続されていれば切断
-        if (attachedTab !== null) {
-            try {
-                const debuggerInfo = await chrome.debugger.getTargets();
-                const isAttached = debuggerInfo.some(d => d.tabId === attachedTab && d.attached);
-                if (isAttached) {
-                    await chrome.debugger.detach({ tabId: attachedTab });
-                }
-            } catch (e) {
-                // エラーを無視
+
+        // notify page (best-effort)
+        try { chrome.tabs.sendMessage(tabId, { type: 'showMessage', message: toMode === 'clipboard' ? 'クリップボードにコピーしました' : 'ファイルに保存しました' }); } catch (e) { /* ignore */ }
+
+        return;
+    } catch (err) {
+        console.warn('CDP capture failed or skipped, falling back to visibleTab capture:', err);
+
+        // ensure debugger detached if left attached
+        if (attached) {
+            try { await new Promise((r) => chrome.debugger.detach({ tabId: tabId }, r)); } catch (e) { /* ignore */ }
+            attached = false;
+        }
+
+        // visibleTab fallback
+        try {
+            const storage = await new Promise((resolve) => chrome.storage.sync.get(['format', 'quality'], resolve));
+            const format = storage.format || 'png';
+            const quality = storage.quality || 100;
+
+            const tab = await chrome.tabs.get(tabId);
+            const dataUrl = await new Promise((resolve, reject) => {
+                chrome.tabs.captureVisibleTab(tab.windowId, { format: format, quality: quality }, (dataUrl) => {
+                    const last = chrome.runtime.lastError;
+                    if (last) reject(last); else resolve(dataUrl);
+                });
+            });
+
+            const message = { type: 'fallbackCapture', dataUrl, clip, mode: toMode, filename: generateScreenshotFileName(format) };
+
+            const sendMessageToTab = (tid, msg) => new Promise((resolve) => {
+                chrome.tabs.sendMessage(tid, msg, (resp) => {
+                    const last = chrome.runtime.lastError;
+                    if (last) {
+                        if (typeof last.message === 'string' && last.message.includes('The message port closed before a response was received')) {
+                            resolve({ ok: true });
+                        } else {
+                            resolve({ ok: false, error: last });
+                        }
+                    } else {
+                        resolve({ ok: true, resp });
+                    }
+                });
+            });
+
+            let res = await sendMessageToTab(tabId, message);
+            if (!res.ok) {
+                // try focusing window/tab and retry
+                try { await new Promise(r => chrome.windows.update(tab.windowId, { focused: true }, r)); await new Promise(r => chrome.tabs.update(tabId, { active: true }, r)); } catch (e) { /* ignore */ }
+                res = await sendMessageToTab(tabId, message);
             }
+
+            if (!res.ok) {
+                // final fallback: download the full visible image
+                try {
+                    await chrome.downloads.download({ url: dataUrl, filename: message.filename });
+                    if (toMode === 'clipboard') {
+                        try { chrome.tabs.sendMessage(tabId, { type: 'showMessage', message: 'ページにフォーカスを当ててから再試行してください。画像はダウンロードしました。' }); } catch (e) { /* ignore */ }
+                    }
+                } catch (dlErr) {
+                    console.error('downloads.download failed in fallback:', dlErr);
+                }
+            }
+
+            return;
+        } catch (fbErr) {
+            console.error('visibleTab fallback failed:', fbErr);
+            return;
         }
     }
 }
@@ -170,20 +224,23 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 // コンテンツスクリプトからの選択完了メッセージを受け取る
 chrome.runtime.onMessage.addListener((message, sender) => {
-    if (message.type === 'selectionComplete' || message.type === 'videoDetected') {
-        captureScreenshot(message.clip, message.mode);
+    const tabId = sender && sender.tab && sender.tab.id;
+    if ((message.type === 'selectionComplete' || message.type === 'videoDetected') && tabId) {
+        captureScreenshot(tabId, message.clip, message.mode);
     }
-    // 完了メッセージを表示
-    if (message.mode === 'clipboard') {
-        chrome.tabs.sendMessage(sender.tab.id, {
-            type: 'showMessage',
-            message: 'クリップボードにコピーしました'
-        });
-    } else if (message.mode === 'file') {
-        chrome.tabs.sendMessage(sender.tab.id, {
-            type: 'showMessage',
-            message: 'ファイルに保存しました'
-        });
+    // 完了メッセージを表示（最小限のガード）
+    if (tabId) {
+        if (message.mode === 'clipboard') {
+            chrome.tabs.sendMessage(tabId, {
+                type: 'showMessage',
+                message: 'クリップボードにコピーしました'
+            });
+        } else if (message.mode === 'file') {
+            chrome.tabs.sendMessage(tabId, {
+                type: 'showMessage',
+                message: 'ファイルに保存しました'
+            });
+        }
     }
 });
 
