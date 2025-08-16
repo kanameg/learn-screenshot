@@ -161,7 +161,8 @@
                 x: Math.round(left + scrollX),
                 y: Math.round(top + scrollY),
                 width: Math.round(width),
-                height: Math.round(height)
+                height: Math.round(height),
+                dpr: window.devicePixelRatio || 1
             };
 
             // まずオーバーレイや選択表示を消してからキャプチャ要求を送る。
@@ -206,6 +207,7 @@
         const rect = video.getBoundingClientRect();
         const scrollX = window.scrollX || window.pageXOffset;
         const scrollY = window.scrollY || window.pageYOffset;
+        console.log('Video element found:', rect, 'scrollX:', scrollX, 'scrollY:', scrollY); // ビデオ要素の位置とスクロール量をログに出力
 
         return {
             x: Math.round(rect.left + scrollX),
@@ -239,7 +241,7 @@
             if (videoRect) {
                 chrome.runtime.sendMessage({
                     type: 'videoDetected',
-                    clip: videoRect,
+                        clip: { ...videoRect, dpr: window.devicePixelRatio || 1 },
                     mode: message.mode
                 });
             } else {
@@ -254,7 +256,7 @@
         if (message.type === 'fallbackCapture') {
             (async () => {
                 try {
-                    const { dataUrl, clip, mode, filename } = message;
+                        const { dataUrl, clip, mode, filename, contentDpr = 1 } = message;
                     // 画像を読み込みキャンバスでクロップ
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
@@ -264,12 +266,19 @@
                         img.onerror = reject;
                     });
 
+                    // dataUrl is based on the visibleTab capture which is in device pixels.
+                    // Adjust clip coords by contentDpr so cropping matches capture image size.
                     const canvas = document.createElement('canvas');
-                    canvas.width = clip.width;
-                    canvas.height = clip.height;
+                    canvas.width = Math.round(clip.width * contentDpr);
+                    canvas.height = Math.round(clip.height * contentDpr);
                     const ctx = canvas.getContext('2d');
-                    // visibleTab の dataUrl はビューポート基準なので clip の座標はそのまま使う
-                    ctx.drawImage(img, clip.x - window.scrollX, clip.y - window.scrollY, clip.width, clip.height, 0, 0, clip.width, clip.height);
+                    // visibleTab dataUrl is in device pixels; convert clip coords to device pixels
+                    const sx = Math.round((clip.x - window.scrollX) * contentDpr);
+                    const sy = Math.round((clip.y - window.scrollY) * contentDpr);
+                    const sWidth = Math.round(clip.width * contentDpr);
+                    const sHeight = Math.round(clip.height * contentDpr);
+                    ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+                    console.log('Captured area (css->device px):', { sx, sy, sWidth, sHeight, contentDpr });
 
                     if (mode === 'file') {
                         canvas.toBlob((blob) => {
@@ -301,6 +310,9 @@
 
                             const imgPreview = document.createElement('img');
                             imgPreview.src = canvas.toDataURL('image/png');
+                            // show a smaller preview if canvas is large (device pixels)
+                            imgPreview.style.maxWidth = '80vw';
+                            imgPreview.style.maxHeight = '60vh';
                             imgPreview.style.maxWidth = '80vw';
                             imgPreview.style.maxHeight = '60vh';
                             panel.appendChild(imgPreview);

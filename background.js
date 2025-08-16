@@ -89,13 +89,22 @@ async function captureScreenshot(tabId, clip, toMode = 'file') {
         const quality = storage.quality || 100;
         const format = storage.format || 'png';
 
+        // account for devicePixelRatio sent from the page so coordinates map correctly
+        const contentDpr = (clip && clip.dpr) ? clip.dpr : 1;
+        const clipForCDP = {
+            x: Math.round((clip.x || 0) * contentDpr),
+            y: Math.round((clip.y || 0) * contentDpr),
+            width: Math.round((clip.width || 0) * contentDpr),
+            height: Math.round((clip.height || 0) * contentDpr),
+            scale: scale
+        };
+
+        console.log('captureScreenshot: using clip', { original: clip, contentDpr, clipForCDP });
+
         const params = {
             format: format,
             quality: quality,
-            clip: {
-                ...clip,
-                scale: scale
-            }
+            clip: clipForCDP
         };
 
         const result = await new Promise((resolve, reject) => {
@@ -151,7 +160,7 @@ async function captureScreenshot(tabId, clip, toMode = 'file') {
                 });
             });
 
-            const message = { type: 'fallbackCapture', dataUrl, clip, mode: toMode, filename: generateScreenshotFileName(format) };
+            const message = { type: 'fallbackCapture', dataUrl, clip, mode: toMode, filename: generateScreenshotFileName(format), contentDpr: (clip && clip.dpr) ? clip.dpr : 1 };
 
             const sendMessageToTab = (tid, msg) => new Promise((resolve) => {
                 chrome.tabs.sendMessage(tid, msg, (resp) => {
