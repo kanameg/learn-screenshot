@@ -54,17 +54,23 @@
 
         const copyBtn = document.createElement('button');
         copyBtn.textContent = 'コピー';
-        copyBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
+        copyBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
+        copyBtn.addEventListener('mouseenter', () => { copyBtn.style.backgroundColor = '#e0e0e0'; });
+        copyBtn.addEventListener('mouseleave', () => { copyBtn.style.backgroundColor = '#f0f0f0'; });
         btnRow.appendChild(copyBtn);
 
         const downloadBtn = document.createElement('button');
         downloadBtn.textContent = 'ダウンロード';
-        downloadBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
+        downloadBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
+        downloadBtn.addEventListener('mouseenter', () => { downloadBtn.style.backgroundColor = '#e0e0e0'; });
+        downloadBtn.addEventListener('mouseleave', () => { downloadBtn.style.backgroundColor = '#f0f0f0'; });
         btnRow.appendChild(downloadBtn);
 
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '閉じる';
-        closeBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; margin-top: 10px;';
+        closeBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
+        closeBtn.addEventListener('mouseenter', () => { closeBtn.style.backgroundColor = '#e0e0e0'; });
+        closeBtn.addEventListener('mouseleave', () => { closeBtn.style.backgroundColor = '#f0f0f0'; });
         btnRow.appendChild(closeBtn);
 
         panel.appendChild(btnRow);
@@ -400,17 +406,23 @@
 
                             const copyBtn = document.createElement('button');
                             copyBtn.textContent = 'コピー';
-                            copyBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
+                            copyBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
+                            copyBtn.addEventListener('mouseenter', () => { copyBtn.style.backgroundColor = '#e0e0e0'; });
+                            copyBtn.addEventListener('mouseleave', () => { copyBtn.style.backgroundColor = '#f0f0f0'; });
                             btnRow.appendChild(copyBtn);
 
                             const downloadBtn = document.createElement('button');
                             downloadBtn.textContent = 'ダウンロード';
-                            downloadBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
+                            downloadBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
+                            downloadBtn.addEventListener('mouseenter', () => { downloadBtn.style.backgroundColor = '#e0e0e0'; });
+                            downloadBtn.addEventListener('mouseleave', () => { downloadBtn.style.backgroundColor = '#f0f0f0'; });
                             btnRow.appendChild(downloadBtn);
 
                             const closeBtn = document.createElement('button');
                             closeBtn.textContent = '閉じる';
-                            closeBtn.style.cssText = 'padding: 6px 12px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer';
+                            closeBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
+                            closeBtn.addEventListener('mouseenter', () => { closeBtn.style.backgroundColor = '#e0e0e0'; });
+                            closeBtn.addEventListener('mouseleave', () => { closeBtn.style.backgroundColor = '#f0f0f0'; });
                             btnRow.appendChild(closeBtn);
 
                             panel.appendChild(btnRow);
