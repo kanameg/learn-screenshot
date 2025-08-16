@@ -29,8 +29,8 @@
         }, 2000);
     }
 
-    // CDP成功時のプレビュー表示関数
-    function showClipboardPreview(dataUrl, filename) {
+    // 共通のプレビュー表示関数
+    function showPreview(dataUrl, filename, dataType = 'url') {
         const overlay = document.createElement('div');
         overlay.style.cssText = `
             position: fixed; left: 0; top: 0; width: 100%; height: 100%;
@@ -52,25 +52,12 @@
         const btnRow = document.createElement('div');
         btnRow.style.cssText = 'display:flex; gap:8px;';
 
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = 'コピー';
-        copyBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
-        copyBtn.addEventListener('mouseenter', () => { copyBtn.style.backgroundColor = '#e0e0e0'; });
-        copyBtn.addEventListener('mouseleave', () => { copyBtn.style.backgroundColor = '#f0f0f0'; });
+        const copyBtn = createButton('コピー');
+        const downloadBtn = createButton('ダウンロード');
+        const closeBtn = createButton('閉じる');
+
         btnRow.appendChild(copyBtn);
-
-        const downloadBtn = document.createElement('button');
-        downloadBtn.textContent = 'ダウンロード';
-        downloadBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
-        downloadBtn.addEventListener('mouseenter', () => { downloadBtn.style.backgroundColor = '#e0e0e0'; });
-        downloadBtn.addEventListener('mouseleave', () => { downloadBtn.style.backgroundColor = '#f0f0f0'; });
         btnRow.appendChild(downloadBtn);
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = '閉じる';
-        closeBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
-        closeBtn.addEventListener('mouseenter', () => { closeBtn.style.backgroundColor = '#e0e0e0'; });
-        closeBtn.addEventListener('mouseleave', () => { closeBtn.style.backgroundColor = '#f0f0f0'; });
         btnRow.appendChild(closeBtn);
 
         panel.appendChild(btnRow);
@@ -79,10 +66,19 @@
 
         const cleanupOverlay = () => { overlay.remove(); };
 
+        // コピーボタンの処理
         copyBtn.addEventListener('click', async () => {
             try {
-                const response = await fetch(dataUrl);
-                const blob = await response.blob();
+                let blob;
+                if (dataType === 'canvas') {
+                    // Canvas データURLの場合
+                    const response = await fetch(dataUrl);
+                    blob = await response.blob();
+                } else {
+                    // 通常のデータURLの場合
+                    const response = await fetch(dataUrl);
+                    blob = await response.blob();
+                }
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
                 showMessage('クリップボードにコピーしました');
                 cleanupOverlay();
@@ -92,6 +88,7 @@
             }
         });
 
+        // ダウンロードボタンの処理
         downloadBtn.addEventListener('click', () => {
             try {
                 const a = document.createElement('a');
@@ -107,6 +104,16 @@
         });
 
         closeBtn.addEventListener('click', cleanupOverlay);
+    }
+
+    // ボタン作成のヘルパー関数
+    function createButton(text) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
+        button.addEventListener('mouseenter', () => { button.style.backgroundColor = '#e0e0e0'; });
+        button.addEventListener('mouseleave', () => { button.style.backgroundColor = '#f0f0f0'; });
+        return button;
     }
 
     function toggleTextSelection(disable) {
@@ -335,7 +342,7 @@
         }
         if (message.type === 'showPreviewForClipboard') {
             // CDP成功時のプレビュー表示
-            showClipboardPreview(message.dataUrl, message.filename);
+            showPreview(message.dataUrl, message.filename);
         }
         if (message.type === 'fallbackCapture') {
             (async () => {
@@ -377,93 +384,9 @@
                         }, 'image/png');
                     } else if (mode === 'clipboard') {
                         try {
-                            // ブラウザのセキュリティ上、自動での clipboard 書き込みが失敗することがあるため
-                            // ここではプレビューと「コピー」ボタンを表示して、ユーザーのクリックでコピーを実行する。
-                            const overlay = document.createElement('div');
-                            overlay.style.cssText = `
-                                position: fixed; left: 0; top: 0; width: 100%; height: 100%;
-                                display: flex; align-items: center; justify-content: center;
-                                background: rgba(0,0,0,0.5); z-index: 2147483647;
-                            `;
-
-                            const panel = document.createElement('div');
-                            panel.style.cssText = `
-                                background: white; padding: 12px; border-radius: 8px; max-width: 90%; max-height: 90%;
-                                display: flex; flex-direction: column; gap: 8px; align-items: center;
-                            `;
-
-                            const imgPreview = document.createElement('img');
-                            imgPreview.src = canvas.toDataURL('image/png');
-                            // show a smaller preview if canvas is large (device pixels)
-                            imgPreview.style.maxWidth = '80vw';
-                            imgPreview.style.maxHeight = '60vh';
-                            imgPreview.style.maxWidth = '80vw';
-                            imgPreview.style.maxHeight = '60vh';
-                            panel.appendChild(imgPreview);
-
-                            const btnRow = document.createElement('div');
-                            btnRow.style.cssText = 'display:flex; gap:8px;';
-
-                            const copyBtn = document.createElement('button');
-                            copyBtn.textContent = 'コピー';
-                            copyBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
-                            copyBtn.addEventListener('mouseenter', () => { copyBtn.style.backgroundColor = '#e0e0e0'; });
-                            copyBtn.addEventListener('mouseleave', () => { copyBtn.style.backgroundColor = '#f0f0f0'; });
-                            btnRow.appendChild(copyBtn);
-
-                            const downloadBtn = document.createElement('button');
-                            downloadBtn.textContent = 'ダウンロード';
-                            downloadBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
-                            downloadBtn.addEventListener('mouseenter', () => { downloadBtn.style.backgroundColor = '#e0e0e0'; });
-                            downloadBtn.addEventListener('mouseleave', () => { downloadBtn.style.backgroundColor = '#f0f0f0'; });
-                            btnRow.appendChild(downloadBtn);
-
-                            const closeBtn = document.createElement('button');
-                            closeBtn.textContent = '閉じる';
-                            closeBtn.style.cssText = 'padding: 10px 16px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px;';
-                            closeBtn.addEventListener('mouseenter', () => { closeBtn.style.backgroundColor = '#e0e0e0'; });
-                            closeBtn.addEventListener('mouseleave', () => { closeBtn.style.backgroundColor = '#f0f0f0'; });
-                            btnRow.appendChild(closeBtn);
-
-                            panel.appendChild(btnRow);
-                            overlay.appendChild(panel);
-                            document.body.appendChild(overlay);
-
-                            const cleanupOverlay = () => { overlay.remove(); };
-
-                            copyBtn.addEventListener('click', async () => {
-                                try {
-                                    // ユーザー操作の文脈で clipboard に書き込む
-                                    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-                                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                                    showMessage('クリップボードにコピーしました');
-                                    cleanupOverlay();
-                                } catch (e) {
-                                    console.error('Clipboard write failed on user click:', e);
-                                    showMessage('クリップボードへのコピーに失敗しました');
-                                }
-                            });
-
-                            downloadBtn.addEventListener('click', () => {
-                                try {
-                                    canvas.toBlob((blob) => {
-                                        const url = URL.createObjectURL(blob);
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = filename || 'screenshot.png';
-                                        document.body.appendChild(a);
-                                        a.click();
-                                        a.remove();
-                                        URL.revokeObjectURL(url);
-                                        cleanupOverlay();
-                                    }, 'image/png');
-                                } catch (e) {
-                                    console.error('Download failed from preview:', e);
-                                }
-                            });
-
-                            closeBtn.addEventListener('click', cleanupOverlay);
-
+                            // Canvas のデータを共通のプレビュー関数で表示
+                            const canvasDataUrl = canvas.toDataURL('image/png');
+                            showPreview(canvasDataUrl, filename, 'canvas');
                         } catch (e) {
                             console.error('Fallback preview handling failed:', e);
                             showMessage('処理に失敗しました');
